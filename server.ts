@@ -1424,22 +1424,24 @@ Rules (strict):
       const imageUrl = `data:image/jpeg;base64,${base64Bytes}`;
       res.json({ imageUrl });
     } catch (err: any) {
-      const msg = err instanceof Error ? err.message : "Failed to generate portrait.";
-      console.error("Portrait generation failed:", msg);
+      console.error("Portrait generation failed:", err);
 
+      // Handle Google's "High Demand" (503) or "Rate Limit" (429) errors
       if (
+        err.status === 503 ||
         err.status === 429 ||
-        msg.includes("overloaded") ||
-        msg.includes("quota") ||
-        msg.includes("Resource exhausted") ||
-        msg.includes("Too many requests")
+        err.message?.includes("high demand") ||
+        err.message?.includes("UNAVAILABLE") ||
+        err.message?.includes("overloaded") ||
+        err.message?.includes("quota") ||
+        err.message?.includes("Resource exhausted")
       ) {
-        return res.status(429).json({
-          error: "The AI artist is currently swamped with requests. Please wait a few seconds and try again!",
+        return res.status(503).json({
+          error: "The AI artist is currently swamped with requests. Please wait a moment and try again!",
         });
       }
 
-      res.status(500).json({ error: msg || "Failed to generate portrait. Please try again." });
+      res.status(500).json({ error: "Failed to generate the scene. Please try again." });
     }
   };
 

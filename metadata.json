@@ -1,0 +1,8 @@
+{
+  "name": "Kith Studio",
+  "description": "Kith — Companion Identity Studio & Lifespan Evolution Previewer under AIP. Personal adaptive companion with custom naming, lifespan decade scripts, patient homework tutoring, emotional journaling, interactive storytime, and voice expressions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

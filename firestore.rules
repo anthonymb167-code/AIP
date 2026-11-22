@@ -1,0 +1,301 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all unmatched paths by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isPct(val) {
+      return val is int && val >= 0 && val <= 100;
+    }
+
+    function isValidHex(val) {
+      return val is string && val.size() <= 9 && val.matches('^#[0-9a-fA-F]{6}$');
+    }
+
+    function isValidBackgroundSpec(spec) {
+      return spec is map
+        && spec.keys().hasAll([
+          'title', 'description', 'skyTopHex', 'skyBottomHex', 'fogHex',
+          'keyLightHex', 'rimLightHex', 'propTheme', 'ambientMotif'
+        ])
+        && spec.keys().hasOnly([
+          'title', 'description', 'skyTopHex', 'skyBottomHex', 'fogHex',
+          'keyLightHex', 'rimLightHex', 'propTheme', 'ambientMotif'
+        ])
+        && spec.title is string && spec.title.size() >= 1 && spec.title.size() <= 80
+        && spec.description is string && spec.description.size() <= 240
+        && isValidHex(spec.skyTopHex)
+        && isValidHex(spec.skyBottomHex)
+        && isValidHex(spec.fogHex)
+        && isValidHex(spec.keyLightHex)
+        && isValidHex(spec.rimLightHex)
+        && spec.propTheme in ['minimal', 'library', 'rainy_cafe', 'observatory', 'music_lounge', 'outdoor_coast', 'city', 'river_boat', 'jungle', 'pyramid', 'mars']
+        && spec.ambientMotif in ['none', 'motes', 'rain', 'stars', 'fireflies'];
+    }
+
+    function isValidMusicSpec(spec) {
+      return spec is map
+        && spec.keys().hasAll([
+          'title', 'description', 'genre', 'bpm', 'rootMidi', 'scaleMode',
+          'chords', 'melody', 'leadInstrument', 'bassStyle', 'drumPattern',
+          'brightness', 'swing'
+        ])
+        && spec.keys().hasOnly([
+          'title', 'description', 'genre', 'bpm', 'rootMidi', 'scaleMode',
+          'chords', 'melody', 'leadInstrument', 'bassStyle', 'drumPattern',
+          'brightness', 'swing'
+        ])
+        && spec.title is string && spec.title.size() >= 1 && spec.title.size() <= 80
+        && spec.description is string && spec.description.size() <= 240
+        && spec.genre in ['classic', 'pop', 'rap', 'country', 'electronic', 'instrumental']
+        && spec.bpm is int && spec.bpm >= 45 && spec.bpm <= 170
+        && spec.rootMidi is int && spec.rootMidi >= 45 && spec.rootMidi <= 72
+        && spec.scaleMode in ['major', 'minor', 'dorian', 'pentatonic_major', 'pentatonic_minor']
+        && spec.chords is list && spec.chords.size() >= 1 && spec.chords.size() <= 8
+        && spec.chords[0] is int && spec.chords[0] >= 0 && spec.chords[0] <= 6
+        && spec.melody is list && spec.melody.size() >= 1 && spec.melody.size() <= 32
+        && spec.melody[0] is int && spec.melody[0] >= -1 && spec.melody[0] <= 14
+        && spec.leadInstrument in ['piano', 'strings', 'acoustic_guitar', 'synth_pluck', 'warm_pad', 'flute']
+        && spec.bassStyle in ['none', 'cello_drone', 'sub_808', 'synth_pulse', 'country_root_fifth', 'walking_bass']
+        && spec.drumPattern in ['none', 'boom_bap', 'pop_groove', 'country_brush', 'electronic_pulse', 'soft_ambient']
+        && spec.brightness is int && spec.brightness >= 10 && spec.brightness <= 100
+        && spec.swing is int && spec.swing >= 0 && spec.swing <= 40;
+    }
+
+    // Validation blueprint: UserProfile
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'ageTier', 'guardianPinEnabled', 'dailyLimitMinutes', 'minutesUsedToday', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'ageTier', 'guardianPinEnabled', 'dailyLimitMinutes', 'minutesUsedToday', 'lockScreenMoodPhrase', 'updatedAt'])
+        && data.uid is string && data.uid == userId && isValidId(data.uid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.ageTier in ['all_ages', 'teen', 'adult']
+        && data.guardianPinEnabled is bool
+        && data.dailyLimitMinutes is int && data.dailyLimitMinutes >= 10 && data.dailyLimitMinutes <= 480
+        && data.minutesUsedToday is int && data.minutesUsedToday >= 0 && data.minutesUsedToday <= 1440
+        && (!('lockScreenMoodPhrase' in data) || (data.lockScreenMoodPhrase is string && data.lockScreenMoodPhrase.size() <= 160))
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation blueprint: CompanionIdentity
+    function isValidCompanion(data, userId) {
+      return data.keys().hasAll([
+          'ownerId', 'primaryName', 'letHimChoose', 'nicknames', 'activeNickname',
+          'archetype', 'decadeStage', 'coatLayering', 'hairLength',
+          'accessoryDetail', 'warmthHumor', 'scholarlyDepth', 'voiceTone',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'studioName', 'gender', 'lifeFocus', 'selectedIndustry', 'enabledIndustryModules', 'otherIndustryName', 'userAgeBand', 'maturityMode', 'adaptiveSelfTuning', 'characterBuildNote',
+          'primaryName', 'letHimChoose', 'nicknames', 'activeNickname',
+          'archetype', 'decadeStage', 'coatLayering', 'hairLength',
+          'accessoryDetail', 'warmthHumor', 'scholarlyDepth', 'voiceTone',
+          'cameraFraming', 'backgroundPreset', 'backgroundPrompt', 'backgroundSpec',
+          'voiceSource', 'voicePresetId', 'voiceStylePrompt',
+          'voiceExternalUrl', 'voiceSampleLabel', 'voiceAutoSpeak',
+          'musicEnabled', 'musicVolume', 'musicPreset', 'musicPrompt', 'musicSpec',
+          'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+        && (!('studioName' in data) || (data.studioName is string && data.studioName.size() >= 1 && data.studioName.size() <= 60))
+        && (!('gender' in data) || data.gender in ['masculine', 'feminine', 'nonbinary'])
+        && (!('lifeFocus' in data) || data.lifeFocus in ['general', 'student', 'growth', 'creative', 'wellness', 'family'])
+        && (!('selectedIndustry' in data) || data.selectedIndustry in ['NONE', 'SCHOOL', 'MEDICAL', 'TECH', 'CREATIVE', 'BUSINESS', 'TRADES', 'OTHER'])
+        && (!('enabledIndustryModules' in data) || (data.enabledIndustryModules is list && data.enabledIndustryModules.size() <= 10 && (data.enabledIndustryModules.size() == 0 || (data.enabledIndustryModules[0] is string && data.enabledIndustryModules[0].size() >= 1 && data.enabledIndustryModules[0].size() <= 32))))
+        && (!('otherIndustryName' in data) || (data.otherIndustryName is string && data.otherIndustryName.size() <= 100))
+        && (!('userAgeBand' in data) || data.userAgeBand in ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61+'])
+        && (!('maturityMode' in data) || data.maturityMode in ['timeless', 'maturing'])
+        && (!('adaptiveSelfTuning' in data) || data.adaptiveSelfTuning is bool)
+        && (!('characterBuildNote' in data) || (data.characterBuildNote is string && data.characterBuildNote.size() <= 240))
+        && data.primaryName is string && data.primaryName.size() >= 1 && data.primaryName.size() <= 48
+        && data.letHimChoose is bool
+        && data.nicknames is list && data.nicknames.size() <= 10
+        && (data.nicknames.size() == 0 || (data.nicknames[0] is string && data.nicknames[0].size() >= 1 && data.nicknames[0].size() <= 32))
+        && data.activeNickname is string && data.activeNickname.size() <= 32
+        && data.archetype in ['goth_academia', 'classic_scholar', 'sporty_vanguard', 'arcane_fantasy', 'retro_analog']
+        && data.decadeStage is int && data.decadeStage >= 0 && data.decadeStage <= 3
+        && isPct(data.coatLayering)
+        && isPct(data.hairLength)
+        && isPct(data.accessoryDetail)
+        && isPct(data.warmthHumor)
+        && isPct(data.scholarlyDepth)
+        && data.voiceTone in ['warm', 'excited', 'calm', 'witty']
+        && (!('cameraFraming' in data) || data.cameraFraming in ['headshot', 'half_body', 'full_body'])
+        && (!('backgroundPreset' in data) || data.backgroundPreset in ['studio_plinth', 'library_study', 'rainy_bookshop', 'observatory', 'vinyl_lounge', 'coastal_dusk', 'city_skyline', 'river_boat', 'emerald_jungle', 'desert_pyramid', 'mars_planet', 'custom'])
+        && (!('backgroundPrompt' in data) || (data.backgroundPrompt is string && data.backgroundPrompt.size() <= 240))
+        && (!('backgroundSpec' in data) || isValidBackgroundSpec(data.backgroundSpec))
+        && (!('voiceSource' in data) || data.voiceSource in ['suggested', 'preset_cast', 'recorded_media', 'live_mic', 'own_voice', 'silent'])
+        && (!('voicePresetId' in data) || (data.voicePresetId is string && data.voicePresetId.size() <= 40))
+        && (!('voiceStylePrompt' in data) || (data.voiceStylePrompt is string && data.voiceStylePrompt.size() <= 240))
+        && (!('voiceExternalUrl' in data) || (data.voiceExternalUrl is string && data.voiceExternalUrl.size() <= 300))
+        && (!('voiceSampleLabel' in data) || (data.voiceSampleLabel is string && data.voiceSampleLabel.size() <= 100))
+        && (!('voiceAutoSpeak' in data) || data.voiceAutoSpeak is bool)
+        && (!('musicEnabled' in data) || data.musicEnabled is bool)
+        && (!('musicVolume' in data) || isPct(data.musicVolume))
+        && (!('musicPreset' in data) || data.musicPreset in ['none', 'classic', 'pop', 'rap', 'country', 'electronic', 'instrumental', 'custom'])
+        && (!('musicPrompt' in data) || (data.musicPrompt is string && data.musicPrompt.size() <= 240))
+        && (!('musicSpec' in data) || isValidMusicSpec(data.musicSpec))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation blueprint: JournalEntry
+    function isValidJournalEntry(data, userId) {
+      return data.keys().hasAll(['ownerId', 'title', 'content', 'mood', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'content', 'mood', 'companionReflection', 'artSvg', 'artCaption', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 140
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 6000
+        && data.mood is string && data.mood.size() >= 1 && data.mood.size() <= 40
+        && (!('companionReflection' in data) || (data.companionReflection is string && data.companionReflection.size() <= 2000))
+        && (!('artSvg' in data) || (data.artSvg is string && data.artSvg.size() <= 45000))
+        && (!('artCaption' in data) || (data.artCaption is string && data.artCaption.size() <= 240))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation blueprint: StoryRecord
+    function isValidStoryRecord(data, userId) {
+      return data.keys().hasAll(['ownerId', 'title', 'theme', 'summary', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'theme', 'summary', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 140
+        && data.theme is string && data.theme.size() >= 1 && data.theme.size() <= 120
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 4000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation blueprint: ActivitySummary
+    function isValidActivitySummary(data, userId) {
+      return data.keys().hasAll(['ownerId', 'mode', 'summary', 'durationMinutes', 'createdAt'])
+        && data.keys().hasOnly(['ownerId', 'mode', 'summary', 'durationMinutes', 'createdAt'])
+        && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+        && data.mode in ['identity', 'chat', 'homework', 'journal', 'storytime']
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 240
+        && data.durationMinutes is int && data.durationMinutes >= 0 && data.durationMinutes <= 480
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && isVerifiedOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'ageTier', 'guardianPinEnabled', 'dailyLimitMinutes',
+          'minutesUsedToday', 'lockScreenMoodPhrase', 'updatedAt'
+        ]);
+      allow delete: if false;
+
+      match /companions/{companionId} {
+        allow get: if isValidId(userId) && isValidId(companionId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(companionId) && isVerifiedOwner(userId)
+          && isValidCompanion(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(companionId) && isVerifiedOwner(userId)
+          && isValidCompanion(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'studioName', 'gender', 'lifeFocus', 'selectedIndustry', 'enabledIndustryModules', 'otherIndustryName', 'userAgeBand', 'maturityMode', 'adaptiveSelfTuning', 'characterBuildNote',
+            'primaryName', 'letHimChoose', 'nicknames', 'activeNickname',
+            'archetype', 'decadeStage', 'coatLayering', 'hairLength',
+            'accessoryDetail', 'warmthHumor', 'scholarlyDepth', 'voiceTone',
+            'cameraFraming', 'backgroundPreset', 'backgroundPrompt', 'backgroundSpec',
+            'voiceSource', 'voicePresetId', 'voiceStylePrompt',
+            'voiceExternalUrl', 'voiceSampleLabel', 'voiceAutoSpeak',
+            'musicEnabled', 'musicVolume', 'musicPreset', 'musicPrompt', 'musicSpec',
+            'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(companionId) && isVerifiedOwner(userId);
+      }
+
+      match /journals/{entryId} {
+        allow get: if isValidId(userId) && isValidId(entryId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(entryId) && isVerifiedOwner(userId)
+          && isValidJournalEntry(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(entryId) && isVerifiedOwner(userId)
+          && isValidJournalEntry(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'content', 'mood', 'companionReflection', 'artSvg', 'artCaption', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(entryId) && isVerifiedOwner(userId);
+      }
+
+      match /stories/{storyId} {
+        allow get: if isValidId(userId) && isValidId(storyId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(storyId) && isVerifiedOwner(userId)
+          && isValidStoryRecord(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(storyId) && isVerifiedOwner(userId)
+          && isValidStoryRecord(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'theme', 'summary', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(storyId) && isVerifiedOwner(userId);
+      }
+
+      match /activity/{logId} {
+        allow get: if isValidId(userId) && isValidId(logId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(logId) && isVerifiedOwner(userId)
+          && isValidActivitySummary(incoming(), userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(logId) && isVerifiedOwner(userId);
+      }
+    }
+  }
+}

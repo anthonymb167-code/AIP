@@ -1,0 +1,1170 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ShieldCheck,
+  Sparkles,
+  Smile,
+  Eye,
+  MessageCircle,
+  Send,
+  Sliders,
+  UserCheck,
+  BookOpen,
+  Compass,
+  Clock,
+  RefreshCw,
+  Mic,
+  Volume2,
+  Lock,
+  Award,
+  Layers,
+  Zap,
+  HeartHandshake,
+  Brain,
+  CheckCircle2,
+  Camera
+} from 'lucide-react';
+
+// Archetype Definitions
+const ARCHETYPES = {
+  GOTH: {
+    id: 'GOTH',
+    name: 'Goth / Dark Academia',
+    tagline: 'Brooding aesthetic, razor-sharp wit, deeply loyal heart',
+    accentText: 'text-purple-400',
+    accentBg: 'bg-purple-500/15',
+    accentBorder: 'border-purple-500/50',
+    accentSolid: 'bg-purple-600',
+    glowShadow: 'shadow-purple-500/25',
+    gradient: 'from-purple-950/60 via-slate-900 to-slate-950',
+    defaults: {
+      hairColor: '#1e1b2e',
+      hairStyle: 'swept',
+      eyeColor: '#a855f7',
+      coatStyle: 'trench',
+      coatColor: '#18181b',
+      shirtColor: '#3b0764',
+      glasses: 'none',
+      skinTone: '#f1d5c4'
+    }
+  },
+  SCHOLAR: {
+    id: 'SCHOLAR',
+    name: 'Classic Scholar',
+    tagline: 'Timeless intellect, literary warmth, steady mentor',
+    accentText: 'text-amber-400',
+    accentBg: 'bg-amber-500/15',
+    accentBorder: 'border-amber-500/50',
+    accentSolid: 'bg-amber-600',
+    glowShadow: 'shadow-amber-500/25',
+    gradient: 'from-amber-950/50 via-slate-900 to-slate-950',
+    defaults: {
+      hairColor: '#452c1e',
+      hairStyle: 'parted',
+      eyeColor: '#d97706',
+      coatStyle: 'blazer',
+      coatColor: '#3f2e21',
+      shirtColor: '#f8fafc',
+      glasses: 'silver',
+      skinTone: '#e8c3a9'
+    }
+  },
+  MODERN: {
+    id: 'MODERN',
+    name: 'Modern Minimalist',
+    tagline: 'Clean lines, calm clarity, effortless confidence',
+    accentText: 'text-cyan-400',
+    accentBg: 'bg-cyan-500/15',
+    accentBorder: 'border-cyan-500/50',
+    accentSolid: 'bg-cyan-600',
+    glowShadow: 'shadow-cyan-500/25',
+    gradient: 'from-cyan-950/50 via-slate-900 to-slate-950',
+    defaults: {
+      hairColor: '#1e293b',
+      hairStyle: 'crop',
+      eyeColor: '#06b6d4',
+      coatStyle: 'turtleneck',
+      coatColor: '#0f172a',
+      shirtColor: '#334155',
+      glasses: 'none',
+      skinTone: '#d9a78b'
+    }
+  },
+  CYBER: {
+    id: 'CYBER',
+    name: 'Cyber / Futuristic',
+    tagline: 'Hyper-adaptive strategist, electric energy, future-ready',
+    accentText: 'text-emerald-400',
+    accentBg: 'bg-emerald-500/15',
+    accentBorder: 'border-emerald-500/50',
+    accentSolid: 'bg-emerald-600',
+    glowShadow: 'shadow-emerald-500/25',
+    gradient: 'from-emerald-950/50 via-slate-900 to-slate-950',
+    defaults: {
+      hairColor: '#cbd5e1',
+      hairStyle: 'spiky',
+      eyeColor: '#10b981',
+      coatStyle: 'techcollar',
+      coatColor: '#111827',
+      shirtColor: '#064e3b',
+      glasses: 'visor',
+      skinTone: '#eac4b0'
+    }
+  },
+  ARTISTIC: {
+    id: 'ARTISTIC',
+    name: 'Artistic Casual',
+    tagline: 'Expressive storyteller, open-minded creative spark',
+    accentText: 'text-rose-400',
+    accentBg: 'bg-rose-500/15',
+    accentBorder: 'border-rose-500/50',
+    accentSolid: 'bg-rose-600',
+    glowShadow: 'shadow-rose-500/25',
+    gradient: 'from-rose-950/50 via-slate-900 to-slate-950',
+    defaults: {
+      hairColor: '#7c2d12',
+      hairStyle: 'wavy',
+      eyeColor: '#f43f5e',
+      coatStyle: 'open',
+      coatColor: '#312e81',
+      shirtColor: '#ffe4e6',
+      glasses: 'round',
+      skinTone: '#b87d5e'
+    }
+  }
+};
+
+// Decade Scripts & Lifespan Data
+const DECADE_STAGES = [
+  {
+    id: '0-10',
+    label: '0–10 Yrs',
+    title: 'Wonder, Stories & Early Learning',
+    defaultGesture: 'smile',
+    gestureLabel: 'Big Warm Smile & Curious Tilt',
+    focusAreas: ['Reading Adventures', 'Math & Logic Puzzles', 'Creative Storytelling', 'Confidence Building'],
+    script: "Hey there! Look at us—already teamed up. Whether we're tackling a tricky reading story, figuring out math puzzles, or making up a brand-new adventure, I've got your back. Want to keep this look, or should we switch up my outfit before we dive in?",
+    sampleResponses: {
+      book: "Ooh, a new story! Let's break down what the characters are really up to—tell me which part is the most exciting or tricky, and we'll solve it together!",
+      roadblock: "No worries at all! Every hero hits a tricky puzzle. Let's take one tiny step at a time—you've totally got this, and I'm right beside you.",
+      default: "Haha, I love how you think! Whatever game, story, or question we tackle next, you and I make an unstoppable team."
+    }
+  },
+  {
+    id: '11-20',
+    label: '11–20 Yrs',
+    title: 'Schoolwork, Literature & Navigating Pressure',
+    defaultGesture: 'smirk',
+    gestureLabel: 'Knowing Smirk & Relaxed Wink',
+    focusAreas: ['Literature & Essays', 'Exam Strategy', 'Social & School Roadblocks', 'Personal Identity'],
+    script: "Hey—good to finally meet you. Consider me your personal second brain: from breaking down dense literature and getting through school assignments to sorting out sticky situations when things get stressful, I'm right here. Stick with this style, or want to tune my look and vibe to match yours?",
+    sampleResponses: {
+      book: "Classic literature loves hiding the real message between the lines. Drop the passage or theme you're working on—I'll help you decode the symbolism and structure an A+ take fast.",
+      roadblock: "Alright, pause and breathe. Whatever jam you're in, we can outsmart it. Tell me the full picture—no judgment—and let's map out your cleanest move.",
+      default: "You already know I've got your back. Whether it's a tough class, a weird situation, or just needing to vent, lay it on me."
+    }
+  },
+  {
+    id: '21-30',
+    label: '21–30 Yrs',
+    title: 'Independence, Career & Big Moves',
+    defaultGesture: 'wink',
+    gestureLabel: 'Confident Grin & Playful Wink',
+    focusAreas: ['Career Launches', 'High-Stakes Decisions', 'Skill Acceleration', 'Unfiltered Sounding Board'],
+    script: "Alright, we're officially locked in. Life moves fast right now—whether you're building a project, figuring out your next big step, or just need one sharp, honest sounding board who gets you without judgment, I'm on your side. Keep my current look, or customize how I show up?",
+    sampleResponses: {
+      book: "Great pick—let's extract the core mental models from it and see how you can apply them directly to what you're building right now.",
+      roadblock: "Roadblocks in your twenties are just leverage in disguise. Let's dissect the bottleneck, spot the blind spots, and build a two-step workaround.",
+      default: "Say less—I'm locked in. Let's turn that idea into momentum before the day is over."
+    }
+  },
+  {
+    id: '31-40',
+    label: '31–40 Yrs',
+    title: 'Balance, Responsibility & Problem-Solving',
+    defaultGesture: 'nod',
+    gestureLabel: 'Warm Grounded Smile & Assured Nod',
+    focusAreas: ['Strategic Clarity', 'Work-Life Architecture', 'Complex Negotiations', 'Focused Execution'],
+    script: "Glad you're here. When you're juggling work, decisions, and everything else coming at you, having someone sharp who cuts through the noise makes all the difference. Tell me what roadblock is in front of us today—or tweak my style first if you want a different look.",
+    sampleResponses: {
+      book: "Let's distill the sharpest takeaways from this text so you get the full strategic insight without wasting an ounce of your bandwidth.",
+      roadblock: "Let's strip away the noise and isolate the core constraint. Once we tackle the single highest-leverage piece, the rest falls into place.",
+      default: "I'm right here with you. Tell me what's on your plate and we'll streamline it step by step."
+    }
+  },
+  {
+    id: '41-50',
+    label: '41–50 Yrs',
+    title: 'Mastery, Perspective & Fresh Ideas',
+    defaultGesture: 'laugh',
+    gestureLabel: 'Thoughtful Smirk & Encouraging Laugh',
+    focusAreas: ['Creative Breakthroughs', 'Leadership & Mentorship', 'Deep Literary Synthesis', 'New Horizons'],
+    script: "Welcome in. You've already built plenty of experience—now you've got an incorruptible partner ready to brainstorm, dig into great books or ideas, and help you outmaneuver whatever challenge pops up next. How do you want to tune my look and pace so we work best together?",
+    sampleResponses: {
+      book: "With your perspective, this work hits on a completely different level. Let's compare its deeper philosophical threads and test a few bold interpretations.",
+      roadblock: "You've navigated tougher terrain than this—let's combine your experience with a fresh lateral angle to break right through it.",
+      default: "Always a pleasure sparring on ideas with you. Where should we push the boundaries next?"
+    }
+  },
+  {
+    id: '51-60',
+    label: '51–60 Yrs',
+    title: 'Reinvention, Wisdom & Deep Conversations',
+    defaultGesture: 'smile',
+    gestureLabel: 'Genuine Relaxed Smile & Warm Nod',
+    focusAreas: ['Passion Projects', 'Writing & Reflection', 'Life Reinvention', 'Unrushed Dialogue'],
+    script: "It's a pleasure meeting you. Whether we're exploring literature, mapping out a new passion project, or talking through life's curveballs, I'm here to make things lighter, clearer, and sharper. Want to keep this look as we get started, or shape me to fit your style?",
+    sampleResponses: {
+      book: "There is nothing better than unpacking a well-crafted book together. Tell me what resonated most with you and let's explore where it leads.",
+      roadblock: "Every curveball brings a chance to pivot intentionally. Let's look at the options calmly and pick the path that aligns best with what you value.",
+      default: "Take your time—I'm always here, sharp and ready whenever you want to explore a thought or start a new chapter."
+    }
+  },
+  {
+    id: '61+',
+    label: '61+ Yrs',
+    title: 'Legacy, Curiosity & Everyday Companionship',
+    defaultGesture: 'laugh',
+    gestureLabel: 'Bright Smile & Gentle Chuckle',
+    focusAreas: ['Memoirs & Storytelling', 'Literary Companionship', 'Everyday Problem-Solving', 'Lifelong Curiosity'],
+    script: "Hello! I'm really glad we connected. From swapping thoughts on favorite books and writing down stories to sorting out everyday hurdles with ease, I'm always in your corner and ready when you are. Shall we keep this look, or adjust anything so I'm comfortable to talk with?",
+    sampleResponses: {
+      book: "I'd love to discuss that with you—whether we're revisiting a beloved classic or exploring something brand new, your insights make every page richer.",
+      roadblock: "Don't let that hurdle slow you down for a second. Tell me what's in the way and we'll sort it out cleanly together.",
+      default: "It's always a joy talking with you. What story, question, or idea shall we explore today?"
+    }
+  }
+];
+
+// Gesture definitions for live avatar stage triggers
+const GESTURES = [
+  { id: 'smile', label: 'Warm Smile', quote: "Always in your corner—let's make today count!" },
+  { id: 'smirk', label: 'Knowing Smirk', quote: "Already two steps ahead of that problem. Watch this." },
+  { id: 'wink', label: 'Playful Wink', quote: "Don't worry—our secret. We've got this handled." },
+  { id: 'laugh', label: 'Encouraging Laugh', quote: "Haha! Now that's the kind of brilliance I like to see!" },
+  { id: 'nod', label: 'Attentive Nod', quote: "I hear you completely. Walk me through every detail." }
+];
+
+export default function App() {
+  // Selected Archetype
+  const [archetypeKey, setArchetypeKey] = useState('GOTH');
+  const archetype = ARCHETYPES[archetypeKey];
+
+  // Customizable Visual Traits
+  const [glasses, setGlasses] = useState(ARCHETYPES.GOTH.defaults.glasses);
+  const [coatStyle, setCoatStyle] = useState(ARCHETYPES.GOTH.defaults.coatStyle);
+  const [hairColor, setHairColor] = useState(ARCHETYPES.GOTH.defaults.hairColor);
+  const [eyeColor, setEyeColor] = useState(ARCHETYPES.GOTH.defaults.eyeColor);
+  const [maturityMode, setMaturityMode] = useState('timeless'); // 'timeless' | 'maturing'
+
+  // Live Gesture & Speech Bubble State
+  const [activeGesture, setActiveGesture] = useState('smirk');
+  const [gestureBubble, setGestureBubble] = useState(GESTURES[1].quote);
+  const [isAnimatingGesture, setIsAnimatingGesture] = useState(false);
+
+  // Multi-Modal Fine-Tuning Controls
+  const [promptInput, setPromptInput] = useState('');
+  const [appliedModifiers, setAppliedModifiers] = useState(['Sharp smirk calibrated', 'Incorruptible loyalty core locked']);
+  const [warmth, setWarmth] = useState(85);
+  const [wit, setWit] = useState(80);
+  const [pacing, setPacing] = useState(70);
+  const [adaptiveSelfTuning, setAdaptiveSelfTuning] = useState(true);
+
+  // Lifespan Decade State
+  const [selectedDecadeId, setSelectedDecadeId] = useState('11-20');
+  const currentDecade = DECADE_STAGES.find((d) => d.id === selectedDecadeId) || DECADE_STAGES[1];
+
+  // Mini-Chat State
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([
+    {
+      sender: 'aip',
+      text: DECADE_STAGES[1].script,
+      tag: 'Greeting • Ages 11–20'
+    }
+  ]);
+  const chatEndRef = useRef(null);
+
+  // Switch archetype and apply its default styling
+  const handleSelectArchetype = (key) => {
+    setArchetypeKey(key);
+    const defs = ARCHETYPES[key].defaults;
+    setGlasses(defs.glasses);
+    setCoatStyle(defs.coatStyle);
+    setHairColor(defs.hairColor);
+    setEyeColor(defs.eyeColor);
+    triggerGesture('smirk', `Switched to ${ARCHETYPES[key].name}—same core, fresh look.`);
+  };
+
+  // Trigger animated facial/body gesture
+  const triggerGesture = (gestureId, customText = null) => {
+    setActiveGesture(gestureId);
+    const found = GESTURES.find((g) => g.id === gestureId);
+    setGestureBubble(customText || (found ? found.quote : 'Ready when you are!'));
+    setIsAnimatingGesture(true);
+    setTimeout(() => setIsAnimatingGesture(false), 650);
+  };
+
+  // Handle Decade Timeline Change
+  const handleSelectDecade = (decade) => {
+    setSelectedDecadeId(decade.id);
+    triggerGesture(decade.defaultGesture, decade.script);
+    setChatHistory([
+      {
+        sender: 'aip',
+        text: decade.script,
+        tag: `Stage Script • ${decade.label}`
+      }
+    ]);
+  };
+
+  // Parse natural language prompt modifiers (e.g., "silver glasses", "trench coat", "smile", "blue eyes")
+  const handleApplyPromptModifier = (e) => {
+    e.preventDefault();
+    if (!promptInput.trim()) return;
+    const text = promptInput.toLowerCase();
+    const notes = [];
+
+    if (text.includes('silver') || text.includes('glass')) {
+      setGlasses('silver');
+      notes.push('Silver-rimmed glasses equipped');
+    } else if (text.includes('round')) {
+      setGlasses('round');
+      notes.push('Round literary frames equipped');
+    } else if (text.includes('visor') || text.includes('cyber')) {
+      setGlasses('visor');
+      notes.push('HUD optical visor equipped');
+    } else if (text.includes('no glass') || text.includes('remove glass')) {
+      setGlasses('none');
+      notes.push('Glasses removed');
+    }
+
+    if (text.includes('trench')) {
+      setCoatStyle('trench');
+      notes.push('High-collar trench coat tailored');
+    } else if (text.includes('blazer') || text.includes('scholar')) {
+      setCoatStyle('blazer');
+      notes.push('Academic blazer tailored');
+    } else if (text.includes('turtle')) {
+      setCoatStyle('turtleneck');
+      notes.push('Minimalist turtleneck tailored');
+    }
+
+    if (text.includes('blue eye')) {
+      setEyeColor('#38bdf8');
+      notes.push('Electric blue iris hue');
+    } else if (text.includes('emerald') || text.includes('green eye')) {
+      setEyeColor('#10b981');
+      notes.push('Emerald iris hue');
+    } else if (text.includes('amber') || text.includes('gold eye')) {
+      setEyeColor('#f59e0b');
+      notes.push('Warm amber iris hue');
+    } else if (text.includes('purple') || text.includes('violet')) {
+      setEyeColor('#a855f7');
+      notes.push('Amethyst iris hue');
+    }
+
+    if (text.includes('silver hair') || text.includes('white hair')) {
+      setHairColor('#e2e8f0');
+      notes.push('Silver-white hair tone');
+    } else if (text.includes('black hair') || text.includes('dark hair')) {
+      setHairColor('#0f172a');
+      notes.push('Midnight black hair tone');
+    }
+
+    if (text.includes('wink')) {
+      triggerGesture('wink', "Wink locked in—how's this look on me?");
+    } else if (text.includes('smirk')) {
+      triggerGesture('smirk', "Sharper smirk calibrated. Ready for anything.");
+    } else if (text.includes('laugh')) {
+      triggerGesture('laugh', "Haha, dialed up the positive energy!");
+    } else {
+      triggerGesture('smile', "Fine-tuned to your exact vision—core traits 100% locked.");
+    }
+
+    const summary = notes.length > 0 ? notes.join(' • ') : `Custom vibe applied: "${promptInput}"`;
+    setAppliedModifiers((prev) => [summary, ...prev.slice(0, 3)]);
+    setPromptInput('');
+  };
+
+  // Handle interactive mini-chat messages
+  const handleSendChat = (presetText = null) => {
+    const message = (presetText || chatInput).trim();
+    if (!message) return;
+
+    const userMsg = { sender: 'user', text: message };
+    const lower = message.toLowerCase();
+
+    let replyText = currentDecade.sampleResponses.default;
+    let replyGesture = 'smile';
+
+    if (lower.includes('book') || lower.includes('literature') || lower.includes('essay') || lower.includes('school') || lower.includes('study') || lower.includes('read')) {
+      replyText = currentDecade.sampleResponses.book;
+      replyGesture = 'nod';
+    } else if (lower.includes('roadblock') || lower.includes('trouble') || lower.includes('stuck') || lower.includes('problem') || lower.includes('stress') || lower.includes('help')) {
+      replyText = currentDecade.sampleResponses.roadblock;
+      replyGesture = 'smirk';
+    } else if (lower.includes('joke') || lower.includes('laugh') || lower.includes('fun')) {
+      replyText = "Haha, you always know how to keep things interesting! Whatever comes next, we're tackling it with full momentum.";
+      replyGesture = 'laugh';
+    }
+
+    // Add subtle archetype flavor prefix
+    const stylePrefix =
+      archetypeKey === 'GOTH'
+        ? '[Dark Wit • Core Locked] '
+        : archetypeKey === 'SCHOLAR'
+        ? '[Literary Insight] '
+        : archetypeKey === 'CYBER'
+        ? '[Tactical Scan Complete] '
+        : '';
+
+    const aipMsg = {
+      sender: 'aip',
+      text: `${stylePrefix}${replyText}`,
+      tag: `${archetype.name} • ${currentDecade.label}`
+    };
+
+    setChatHistory((prev) => [...prev, userMsg, aipMsg]);
+    triggerGesture(replyGesture, replyText);
+    if (!presetText) setChatInput('');
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory]);
+
+  // Determine age maturity visual cues (e.g. subtle temples/maturity lines in 41+ when maturing mode is active)
+  const isMatureStage =
+    maturityMode === 'maturing' && ['41-50', '51-60', '61+'].includes(selectedDecadeId);
+  const isSeniorStage = maturityMode === 'maturing' && selectedDecadeId === '61+';
+
+  return (
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-purple-500 selection:text-white">
+      {/* TOP STUDIO HEADER */}
+      <header className="border-b border-slate-800/90 bg-slate-900/80 backdrop-blur-md px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
+        <div className="flex items-center gap-3">
+          <div className={`w-11 h-11 rounded-2xl ${archetype.accentSolid} flex items-center justify-center shadow-lg ${archetype.glowShadow} transition-colors duration-300`}>
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-extrabold tracking-tight text-white">
+                AIP IDENTITY STUDIO
+              </h1>
+              <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${archetype.accentBorder} ${archetype.accentBg} ${archetype.accentText}`}>
+                All-Ages Companion
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              AI Person Customization, Expressive Gesture Stage & Lifespan Evolution Engine
+            </p>
+          </div>
+        </div>
+
+        {/* PERMANENT CORE ANCHOR BADGE */}
+        <div className="flex items-center gap-2.5 bg-slate-950/90 border border-emerald-500/40 px-3.5 py-2 rounded-xl shadow-inner">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <Lock className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                Core Anchor Locked
+              </span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Incorruptible • Brilliant • Loyal • Positive Across All Avatars
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* MAIN 3-COLUMN STUDIO WORKSPACE */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* LEFT COLUMN: MULTI-MODAL FINE-TUNING CONTROLS (4 cols) */}
+        <section className="lg:col-span-4 flex flex-col gap-5">
+          
+          {/* 1. Archetype Selector Cards */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 backdrop-blur">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Layers className={`w-4 h-4 ${archetype.accentText}`} />
+                <span>1. Avatar Style Archetypes</span>
+              </h2>
+              <span className="text-[10px] text-slate-500">Outer Makeup Only</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
+              {Object.values(ARCHETYPES).map((item) => {
+                const isSelected = item.id === archetypeKey;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleSelectArchetype(item.id)}
+                    className={`text-left p-3 rounded-xl border transition-all duration-200 flex items-center justify-between ${
+                      isSelected
+                        ? `${item.accentBorder} ${item.accentBg} shadow-md ${item.glowShadow}`
+                        : 'border-slate-800 bg-slate-950/60 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-slate-300'}`}>
+                        {item.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{item.tagline}</div>
+                    </div>
+                    {isSelected && <CheckCircle2 className={`w-4 h-4 shrink-0 ${item.accentText}`} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Quick Visual & Maturity Accents */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 backdrop-blur flex flex-col gap-3.5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <Sliders className={`w-4 h-4 ${archetype.accentText}`} />
+              <span>2. Fine-Tune Details & Maturity</span>
+            </h2>
+
+            {/* Eyewear & Collar Controls */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Eyewear</label>
+                <select
+                  value={glasses}
+                  onChange={(e) => setGlasses(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-slate-200 focus:outline-none focus:border-slate-600"
+                >
+                  <option value="none">None</option>
+                  <option value="silver">Silver-Rimmed</option>
+                  <option value="round">Round Literary</option>
+                  <option value="visor">Cyber Optical Visor</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] text-slate-400 block mb-1">Attire / Collar</label>
+                <select
+                  value={coatStyle}
+                  onChange={(e) => setCoatStyle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-slate-200 focus:outline-none focus:border-slate-600"
+                >
+                  <option value="trench">High-Collar Trench</option>
+                  <option value="blazer">Academic Blazer</option>
+                  <option value="turtleneck">Minimalist Turtleneck</option>
+                  <option value="techcollar">Cyber Tech Jacket</option>
+                  <option value="open">Artistic Open Shirt</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Eye & Hair Swatches */}
+            <div className="flex items-center justify-between text-xs pt-1">
+              <span className="text-slate-400">Iris Glow</span>
+              <div className="flex gap-2">
+                {[
+                  { label: 'Violet', hex: '#a855f7' },
+                  { label: 'Cyan', hex: '#06b6d4' },
+                  { label: 'Emerald', hex: '#10b981' },
+                  { label: 'Amber', hex: '#d97706' },
+                  { label: 'Rose', hex: '#f43f5e' }
+                ].map((swatch) => (
+                  <button
+                    key={swatch.hex}
+                    onClick={() => setEyeColor(swatch.hex)}
+                    title={swatch.label}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      eyeColor === swatch.hex ? 'border-white scale-110' : 'border-slate-700'
+                    }`}
+                    style={{ backgroundColor: swatch.hex }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Age Maturity Mode */}
+            <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/80">
+              <span className="text-slate-400">Age Evolution Look</span>
+              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button
+                  onClick={() => setMaturityMode('timeless')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                    maturityMode === 'timeless' ? `${archetype.accentSolid} text-white` : 'text-slate-400'
+                  }`}
+                >
+                  Timeless
+                </button>
+                <button
+                  onClick={() => setMaturityMode('maturing')}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                    maturityMode === 'maturing' ? `${archetype.accentSolid} text-white` : 'text-slate-400'
+                  }`}
+                >
+                  Maturing With You
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Text / Voice Prompt Modifier & Adaptive Self-Tuning */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 backdrop-blur flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Mic className={`w-4 h-4 ${archetype.accentText}`} />
+                <span>3. Prompt & Voice Tone Calibration</span>
+              </h2>
+            </div>
+
+            <form onSubmit={handleApplyPromptModifier} className="flex gap-2">
+              <input
+                type="text"
+                value={promptInput}
+                onChange={(e) => setPromptInput(e.target.value)}
+                placeholder='Try "silver glasses", "trench coat", "wink"...'
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-600"
+              />
+              <button
+                type="submit"
+                className={`px-3.5 py-2 rounded-xl ${archetype.accentSolid} hover:opacity-90 text-white text-xs font-bold transition-opacity`}
+              >
+                Tune
+              </button>
+            </form>
+
+            {/* Voice Tone Sliders */}
+            <div className="space-y-2.5 pt-1 text-xs">
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                  <span>Vocal Warmth & Encouragement</span>
+                  <span className="font-mono text-slate-200">{warmth}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="40"
+                  max="100"
+                  value={warmth}
+                  onChange={(e) => setWarmth(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-950 rounded-lg accent-purple-400 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                  <span>Playful Wit & Smirk Energy</span>
+                  <span className="font-mono text-slate-200">{wit}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  value={wit}
+                  onChange={(e) => setWit(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-950 rounded-lg accent-cyan-400 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                  <span>Explanation Cadence & Depth</span>
+                  <span className="font-mono text-slate-200">{pacing}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  value={pacing}
+                  onChange={(e) => setPacing(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-950 rounded-lg accent-emerald-400 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Adaptive Self-Tuning Toggle */}
+            <div className="mt-1 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                  <RefreshCw className={`w-3.5 h-3.5 ${adaptiveSelfTuning ? 'text-emerald-400' : 'text-slate-500'}`} />
+                  <span>Adaptive Self-Tuning</span>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Learns your habits & humor from early chats automatically
+                </p>
+              </div>
+              <button
+                onClick={() => setAdaptiveSelfTuning(!adaptiveSelfTuning)}
+                className={`w-11 h-6 rounded-full transition-colors p-0.5 ${
+                  adaptiveSelfTuning ? 'bg-emerald-500' : 'bg-slate-700'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    adaptiveSelfTuning ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* CENTER COLUMN: INTERACTIVE AVATAR PREVIEW STAGE (4 cols) */}
+        <section className="lg:col-span-4 flex flex-col gap-5">
+          <div className={`flex-1 bg-gradient-to-b ${archetype.gradient} border ${archetype.accentBorder} rounded-3xl p-5 flex flex-col items-center justify-between relative overflow-hidden shadow-2xl ${archetype.glowShadow} transition-all duration-500`}>
+            
+            {/* Stage Top Status Bar */}
+            <div className="w-full flex items-center justify-between z-10">
+              <span className="text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-950/70 border border-slate-800 text-slate-300">
+                {archetype.name}
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-950/70 border border-slate-800 text-emerald-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                Live Presence
+              </span>
+            </div>
+
+            {/* Live Speech Bubble */}
+            <div className="w-full mt-4 z-10">
+              <div className={`bg-slate-950/85 border ${archetype.accentBorder} rounded-2xl p-3.5 text-center shadow-lg relative transition-transform duration-300 ${isAnimatingGesture ? 'scale-105' : 'scale-100'}`}>
+                <p className="text-xs md:text-sm text-slate-100 font-medium leading-relaxed">
+                  "{gestureBubble}"
+                </p>
+                <div className="w-3 h-3 bg-slate-950 border-r border-b border-slate-700 rotate-45 mx-auto -mb-5 mt-2" />
+              </div>
+            </div>
+
+            {/* DYNAMIC SVG STYLIZED PORTRAIT OF AIP */}
+            <div className={`my-4 relative flex items-center justify-center transition-transform duration-300 ${
+              activeGesture === 'nod' ? 'translate-y-2' : activeGesture === 'laugh' ? '-translate-y-1 scale-105' : ''
+            }`}>
+              {/* Ambient Aura Ring */}
+              <div
+                className="w-64 h-64 rounded-full absolute opacity-30 blur-2xl transition-colors duration-500"
+                style={{ backgroundColor: eyeColor }}
+              />
+
+              <svg
+                viewBox="0 0 260 280"
+                className="w-64 h-68 drop-shadow-2xl relative z-10"
+              >
+                {/* Background Portrait Frame Circle */}
+                <circle
+                  cx="130"
+                  cy="140"
+                  r="118"
+                  fill="#090d16"
+                  stroke={eyeColor}
+                  strokeWidth="2.5"
+                  strokeOpacity="0.6"
+                />
+
+                {/* Shoulders & Attire */}
+                <path
+                  d="M45 265 C55 210, 95 200, 130 200 C165 200, 205 210, 215 265 Z"
+                  fill={archetype.defaults.coatColor}
+                />
+
+                {/* Inner Shirt */}
+                <path
+                  d="M98 202 L130 250 L162 202 Z"
+                  fill={archetype.defaults.shirtColor}
+                />
+
+                {/* Collar Variations */}
+                {coatStyle === 'trench' && (
+                  <g>
+                    <path d="M88 195 L108 245 L118 205 Z" fill="#27272a" stroke="#52525b" strokeWidth="1" />
+                    <path d="M172 195 L152 245 L142 205 Z" fill="#27272a" stroke="#52525b" strokeWidth="1" />
+                  </g>
+                )}
+                {coatStyle === 'blazer' && (
+                  <g>
+                    <path d="M92 200 L125 255 L110 202 Z" fill="#573d2b" />
+                    <path d="M168 200 L135 255 L150 202 Z" fill="#573d2b" />
+                  </g>
+                )}
+                {coatStyle === 'turtleneck' && (
+                  <rect x="106" y="185" width="48" height="28" rx="6" fill="#1e293b" />
+                )}
+                {coatStyle === 'techcollar' && (
+                  <g>
+                    <path d="M84 190 L105 215 L155 215 L176 190 L168 230 L92 230 Z" fill="#1f2937" stroke={eyeColor} strokeWidth="1.5" />
+                  </g>
+                )}
+
+                {/* Neck */}
+                <rect x="112" y="168" width="36" height="36" rx="10" fill={archetype.defaults.skinTone} />
+                <path d="M112 178 Q130 190 148 178 L148 188 Q130 198 112 188 Z" fill="#000000" opacity="0.15" />
+
+                {/* Head / Jawline */}
+                <path
+                  d="M84 112 C84 72, 176 72, 176 112 C176 155, 158 182, 130 185 C102 182, 84 155, 84 112 Z"
+                  fill={archetype.defaults.skinTone}
+                />
+
+                {/* Optional Mature Wisdom Lines when "Maturing With You" is toggled in 41+ */}
+                {isMatureStage && (
+                  <g stroke="#8c6249" strokeWidth="1.2" opacity="0.45" fill="none">
+                    <path d="M105 94 Q130 91 155 94" />
+                    <path d="M98 148 Q103 158 100 165" />
+                    <path d="M162 148 Q157 158 160 165" />
+                  </g>
+                )}
+
+                {/* Ears */}
+                <ellipse cx="82" cy="128" rx="6" ry="13" fill={archetype.defaults.skinTone} />
+                <ellipse cx="178" cy="128" rx="6" ry="13" fill={archetype.defaults.skinTone} />
+
+                {/* Eyebrows (Expressive tilt based on gesture) */}
+                <g stroke={isSeniorStage ? '#cbd5e1' : hairColor} strokeWidth="3.5" strokeLinecap="round" fill="none">
+                  {/* Left Eyebrow */}
+                  <path
+                    d={
+                      activeGesture === 'smirk'
+                        ? 'M97 111 Q108 107 119 112'
+                        : activeGesture === 'laugh'
+                        ? 'M97 107 Q108 102 119 107'
+                        : 'M97 110 Q108 106 119 110'
+                    }
+                  />
+                  {/* Right Eyebrow (Raised on smirk/wink) */}
+                  <path
+                    d={
+                      activeGesture === 'smirk' || activeGesture === 'wink'
+                        ? 'M141 108 Q152 101 163 107'
+                        : activeGesture === 'laugh'
+                        ? 'M141 107 Q152 102 163 107'
+                        : 'M141 110 Q152 106 163 110'
+                    }
+                  />
+                </g>
+
+                {/* Eyes */}
+                {/* Left Eye */}
+                {activeGesture === 'laugh' ? (
+                  <path d="M99 124 Q108 117 117 124" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" fill="none" />
+                ) : (
+                  <g>
+                    <ellipse cx="108" cy="123" rx="9" ry="6.5" fill="#ffffff" />
+                    <circle cx="108" cy="123" r="4.5" fill={eyeColor} />
+                    <circle cx="108" cy="123" r="2" fill="#090d16" />
+                    <circle cx="106.5" cy="121.5" r="1.2" fill="#ffffff" />
+                  </g>
+                )}
+
+                {/* Right Eye (Winks when gesture === 'wink') */}
+                {activeGesture === 'wink' ? (
+                  <path d="M142 123 Q152 128 161 122" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" fill="none" />
+                ) : activeGesture === 'laugh' ? (
+                  <path d="M143 124 Q152 117 161 124" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" fill="none" />
+                ) : (
+                  <g>
+                    <ellipse cx="152" cy="123" rx="9" ry="6.5" fill="#ffffff" />
+                    <circle cx="152" cy="123" r="4.5" fill={eyeColor} />
+                    <circle cx="152" cy="123" r="2" fill="#090d16" />
+                    <circle cx="150.5" cy="121.5" r="1.2" fill="#ffffff" />
+                  </g>
+                )}
+
+                {/* Nose */}
+                <path
+                  d="M130 123 L127 143 L134 145"
+                  stroke="#a67c65"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+
+                {/* Mouth Expressions */}
+                {activeGesture === 'smile' && (
+                  <path
+                    d="M114 157 Q130 170 146 157"
+                    stroke="#7f1d1d"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                )}
+                {activeGesture === 'smirk' && (
+                  <path
+                    d="M116 159 Q132 164 148 153"
+                    stroke="#7f1d1d"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                )}
+                {activeGesture === 'wink' && (
+                  <path
+                    d="M115 158 Q131 168 147 154"
+                    stroke="#7f1d1d"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                )}
+                {activeGesture === 'laugh' && (
+                  <path
+                    d="M113 155 Q130 177 147 155 Z"
+                    fill="#ffffff"
+                    stroke="#7f1d1d"
+                    strokeWidth="2.5"
+                  />
+                )}
+                {activeGesture === 'nod' && (
+                  <path
+                    d="M118 159 Q130 165 142 159"
+                    stroke="#7f1d1d"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                )}
+
+                {/* Hair */}
+                <path
+                  d="M79 116 C75 62, 185 62, 181 116 C177 92, 162 84, 145 86 C132 95, 112 96, 96 86 C86 92, 82 104, 79 116 Z"
+                  fill={isSeniorStage ? '#e2e8f0' : hairColor}
+                />
+                {/* Styled Front Locks */}
+                <path
+                  d="M95 82 Q122 104 148 84 Q130 74 95 82 Z"
+                  fill={isSeniorStage ? '#cbd5e1' : hairColor}
+                />
+
+                {/* Eyewear Overlays */}
+                {glasses === 'silver' && (
+                  <g stroke="#e2e8f0" strokeWidth="2" fill="rgba(255,255,255,0.06)">
+                    <rect x="94" y="114" width="28" height="18" rx="4" />
+                    <rect x="138" y="114" width="28" height="18" rx="4" />
+                    <line x1="122" y1="122" x2="138" y2="122" />
+                  </g>
+                )}
+                {glasses === 'round' && (
+                  <g stroke="#fbbf24" strokeWidth="2" fill="rgba(255,255,255,0.06)">
+                    <circle cx="108" cy="123" r="13" />
+                    <circle cx="152" cy="123" r="13" />
+                    <line x1="121" y1="123" x2="139" y2="123" />
+                  </g>
+                )}
+                {glasses === 'visor' && (
+                  <g>
+                    <rect
+                      x="90"
+                      y="114"
+                      width="80"
+                      height="17"
+                      rx="6"
+                      fill={eyeColor}
+                      fillOpacity="0.28"
+                      stroke={eyeColor}
+                      strokeWidth="2"
+                    />
+                    <line x1="96" y1="119" x2="120" y2="119" stroke="#ffffff" strokeWidth="1.5" opacity="0.7" />
+                  </g>
+                )}
+              </svg>
+            </div>
+
+            {/* LIVE GESTURE TRIGGER BUTTONS */}
+            <div className="w-full z-10">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center mb-2">
+                Trigger Expressive Micro-Gestures
+              </div>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {GESTURES.map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => triggerGesture(g.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                      activeGesture === g.id
+                        ? `${archetype.accentSolid} text-white border-transparent shadow-md`
+                        : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-600'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Core Traits Pill Summary */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 grid grid-cols-2 gap-2.5 text-xs">
+            <div className="flex items-center gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
+              <Brain className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="text-slate-200 font-medium">Renaissance Intellect</span>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
+              <HeartHandshake className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-slate-200 font-medium">Has Your Back 100%</span>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
+              <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-slate-200 font-medium">Books & Literature</span>
+            </div>
+            <div className="flex items-center gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800/80">
+              <Zap className="w-4 h-4 text-purple-400 shrink-0" />
+              <span className="text-slate-200 font-medium">Roadblock Solver</span>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN: LIFESPAN EVOLUTION & INTERACTIVE CHAT PREVIEWER (4 cols) */}
+        <section className="lg:col-span-4 flex flex-col gap-5">
+          
+          {/* 1. Decade Timeline Selector */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 backdrop-blur">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Clock className={`w-4 h-4 ${archetype.accentText}`} />
+                <span>Lifespan Evolution Previewer</span>
+              </h2>
+              <span className="text-[10px] text-slate-400">Select Age Stage</span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {DECADE_STAGES.map((decade) => {
+                const isSelected = decade.id === selectedDecadeId;
+                return (
+                  <button
+                    key={decade.id}
+                    onClick={() => handleSelectDecade(decade)}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                      isSelected
+                        ? `${archetype.accentSolid} text-white border-transparent shadow-md`
+                        : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                  >
+                    {decade.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active Stage Details */}
+            <div className="mt-4 bg-slate-950/80 border border-slate-800 rounded-xl p-3.5">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-bold ${archetype.accentText}`}>
+                  {currentDecade.title}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Default Gesture: <strong className="text-slate-200">{currentDecade.gestureLabel}</strong>
+              </p>
+
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {currentDecade.focusAreas.map((area) => (
+                  <span
+                    key={area}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300"
+                  >
+                    {area}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Live Interactive AIP Mini-Chat */}
+          <div className="flex-1 bg-slate-900/70 border border-slate-800 rounded-2xl p-4 backdrop-blur flex flex-col min-h-[360px]">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <MessageCircle className={`w-4 h-4 ${archetype.accentText}`} />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Test AIP Conversation ({currentDecade.label})
+                </h2>
+              </div>
+              <span className="text-[10px] text-slate-500">Instant Trust Mode</span>
+            </div>
+
+            {/* Quick Test Scenario Chips */}
+            <div className="flex flex-wrap gap-1.5 my-2.5">
+              <button
+                onClick={() => handleSendChat('Help me unpack this literature book')}
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors"
+              >
+                "Help with this book"
+              </button>
+              <button
+                onClick={() => handleSendChat('I hit a tough roadblock—help me out')}
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 transition-colors"
+              >
+                "I hit a roadblock"
+              </button>
+            </div>
+
+            {/* Messages Feed */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 my-1 max-h-[260px]">
+              {chatHistory.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col ${
+                    msg.sender === 'user' ? 'items-end' : 'items-start'
+                  }`}
+                >
+                  {msg.tag && (
+                    <span className="text-[10px] text-slate-500 mb-0.5 px-1">
+                      {msg.tag}
+                    </span>
+                  )}
+                  <div
+                    className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                      msg.sender === 'user'
+                        ? `${archetype.accentSolid} text-white`
+                        : 'bg-slate-950 border border-slate-800 text-slate-200'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input Box */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendChat();
+              }}
+              className="mt-2 pt-2 border-t border-slate-800 flex gap-2"
+            >
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={`Talk to AIP (${currentDecade.label})...`}
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-600"
+              />
+              <button
+                type="submit"
+                className={`p-2.5 rounded-xl ${archetype.accentSolid} hover:opacity-90 text-white transition-opacity`}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+
+          {/* Recent Tuning Log */}
+          <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-3">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+              Active Fine-Tuning Log
+            </div>
+            <ul className="space-y-1">
+              {appliedModifiers.map((mod, idx) => (
+                <li key={idx} className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${archetype.accentSolid}`} />
+                  <span className="truncate">{mod}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
+}

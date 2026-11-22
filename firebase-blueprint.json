@@ -1,0 +1,409 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, guardian settings, and lock screen companion preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "ageTier": {
+          "type": "string",
+          "enum": ["all_ages", "teen", "adult"]
+        },
+        "guardianPinEnabled": {
+          "type": "boolean"
+        },
+        "dailyLimitMinutes": {
+          "type": "integer"
+        },
+        "minutesUsedToday": {
+          "type": "integer"
+        },
+        "lockScreenMoodPhrase": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "ageTier", "guardianPinEnabled", "dailyLimitMinutes", "minutesUsedToday", "updatedAt"]
+    },
+    "CompanionIdentity": {
+      "title": "CompanionIdentity",
+      "description": "Personalized AIP companion identity, naming, archetype, appearance tuning, and decade stage.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studioName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["masculine", "feminine", "nonbinary"]
+        },
+        "lifeFocus": {
+          "type": "string",
+          "enum": ["general", "student", "growth", "creative", "wellness", "family"]
+        },
+        "selectedIndustry": {
+          "type": "string",
+          "enum": ["NONE", "SCHOOL", "MEDICAL", "TECH", "CREATIVE", "BUSINESS", "TRADES", "OTHER"]
+        },
+        "enabledIndustryModules": {
+          "type": "array"
+        },
+        "otherIndustryName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "userAgeBand": {
+          "type": "string",
+          "enum": ["0-10", "11-20", "21-30", "31-40", "41-50", "51-60", "61+"]
+        },
+        "maturityMode": {
+          "type": "string",
+          "enum": ["timeless", "maturing"]
+        },
+        "adaptiveSelfTuning": {
+          "type": "boolean"
+        },
+        "characterBuildNote": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "primaryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "letHimChoose": {
+          "type": "boolean"
+        },
+        "nicknames": {
+          "type": "array"
+        },
+        "activeNickname": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "archetype": {
+          "type": "string",
+          "enum": ["goth_academia", "classic_scholar", "sporty_vanguard", "arcane_fantasy", "retro_analog"]
+        },
+        "decadeStage": {
+          "type": "integer"
+        },
+        "coatLayering": {
+          "type": "integer"
+        },
+        "hairLength": {
+          "type": "integer"
+        },
+        "accessoryDetail": {
+          "type": "integer"
+        },
+        "warmthHumor": {
+          "type": "integer"
+        },
+        "scholarlyDepth": {
+          "type": "integer"
+        },
+        "voiceTone": {
+          "type": "string",
+          "enum": ["warm", "excited", "calm", "witty"]
+        },
+        "cameraFraming": {
+          "type": "string",
+          "enum": ["headshot", "half_body", "full_body"]
+        },
+        "backgroundPreset": {
+          "type": "string",
+          "enum": [
+            "studio_plinth",
+            "library_study",
+            "rainy_bookshop",
+            "observatory",
+            "vinyl_lounge",
+            "coastal_dusk",
+            "city_skyline",
+            "river_boat",
+            "emerald_jungle",
+            "desert_pyramid",
+            "mars_planet",
+            "custom"
+          ]
+        },
+        "backgroundPrompt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "backgroundSpec": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "maxLength": 80 },
+            "description": { "type": "string", "maxLength": 240 },
+            "skyTopHex": { "type": "string", "maxLength": 9 },
+            "skyBottomHex": { "type": "string", "maxLength": 9 },
+            "fogHex": { "type": "string", "maxLength": 9 },
+            "keyLightHex": { "type": "string", "maxLength": 9 },
+            "rimLightHex": { "type": "string", "maxLength": 9 },
+            "propTheme": {
+              "type": "string",
+              "enum": [
+                "minimal",
+                "library",
+                "rainy_cafe",
+                "observatory",
+                "music_lounge",
+                "outdoor_coast",
+                "city",
+                "river_boat",
+                "jungle",
+                "pyramid",
+                "mars"
+              ]
+            },
+            "ambientMotif": { "type": "string", "enum": ["none", "motes", "rain", "stars", "fireflies"] }
+          }
+        },
+        "voiceSource": {
+          "type": "string",
+          "enum": ["suggested", "preset_cast", "recorded_media", "live_mic", "own_voice", "silent"]
+        },
+        "voicePresetId": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "voiceStylePrompt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "voiceExternalUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "voiceSampleLabel": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "voiceAutoSpeak": {
+          "type": "boolean"
+        },
+        "musicEnabled": {
+          "type": "boolean"
+        },
+        "musicVolume": {
+          "type": "integer"
+        },
+        "musicPreset": {
+          "type": "string",
+          "enum": ["none", "classic", "pop", "rap", "country", "electronic", "instrumental", "custom"]
+        },
+        "musicPrompt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "musicSpec": {
+          "type": "object",
+          "properties": {
+            "title": { "type": "string", "maxLength": 80 },
+            "description": { "type": "string", "maxLength": 240 },
+            "genre": { "type": "string", "enum": ["classic", "pop", "rap", "country", "electronic", "instrumental"] },
+            "bpm": { "type": "integer" },
+            "rootMidi": { "type": "integer" },
+            "scaleMode": { "type": "string", "enum": ["major", "minor", "dorian", "pentatonic_major", "pentatonic_minor"] },
+            "chords": { "type": "array" },
+            "melody": { "type": "array" },
+            "leadInstrument": { "type": "string", "enum": ["piano", "strings", "acoustic_guitar", "synth_pluck", "warm_pad", "flute"] },
+            "bassStyle": { "type": "string", "enum": ["none", "cello_drone", "sub_808", "synth_pulse", "country_root_fifth", "walking_bass"] },
+            "drumPattern": { "type": "string", "enum": ["none", "boom_bap", "pop_groove", "country_brush", "electronic_pulse", "soft_ambient"] },
+            "brightness": { "type": "integer" },
+            "swing": { "type": "integer" }
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "primaryName",
+        "letHimChoose",
+        "nicknames",
+        "activeNickname",
+        "archetype",
+        "decadeStage",
+        "coatLayering",
+        "hairLength",
+        "accessoryDetail",
+        "warmthHumor",
+        "scholarlyDepth",
+        "voiceTone",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "Private emotional support journal entry with optional companion reflection and generated SVG artwork.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6000
+        },
+        "mood": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "companionReflection": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "artSvg": {
+          "type": "string",
+          "maxLength": 45000
+        },
+        "artCaption": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "content", "mood", "createdAt", "updatedAt"]
+    },
+    "StoryRecord": {
+      "title": "StoryRecord",
+      "description": "Saved interactive storytime session co-authored with Kith.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "theme": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "theme", "summary", "createdAt", "updatedAt"]
+    },
+    "ActivitySummary": {
+      "title": "ActivitySummary",
+      "description": "Transparent parent/guardian activity summary item (no third-party sharing).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["identity", "chat", "homework", "journal", "storytime"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "durationMinutes": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "mode", "summary", "durationMinutes", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-only user profile and guardian settings."
+    },
+    "/users/{userId}/companions/{companionId}": {
+      "schema": { "$ref": "#/entities/CompanionIdentity" },
+      "description": "Owner-only companion identity and evolution state."
+    },
+    "/users/{userId}/journals/{entryId}": {
+      "schema": { "$ref": "#/entities/JournalEntry" },
+      "description": "Owner-only emotional support journal entries."
+    },
+    "/users/{userId}/stories/{storyId}": {
+      "schema": { "$ref": "#/entities/StoryRecord" },
+      "description": "Owner-only saved storytime chapters."
+    },
+    "/users/{userId}/activity/{logId}": {
+      "schema": { "$ref": "#/entities/ActivitySummary" },
+      "description": "Owner-only transparent activity summaries for Guardian review."
+    }
+  }
+}

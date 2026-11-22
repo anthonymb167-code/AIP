@@ -22,7 +22,20 @@ export function PortraitMode({ identity, onOpenShareModal, onLogActivity }: Port
   const [state, setState] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [slowNotice, setSlowNotice] = useState(false);
   const [rateLimitStatus, setRateLimitStatus] = useState(() => checkPortraitRateLimit());
+
+  useEffect(() => {
+    let timer: number;
+    if (state === "generating") {
+      timer = window.setTimeout(() => {
+        setSlowNotice(true);
+      }, 10000);
+    } else {
+      setSlowNotice(false);
+    }
+    return () => window.clearTimeout(timer);
+  }, [state]);
 
   useEffect(() => {
     const cached = getCachedPortrait(identity, style);

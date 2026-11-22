@@ -1406,7 +1406,26 @@ Rules (strict):
 
       const fullPrompt = `Character portrait of ${nameStr}, a ${genderStr} companion. ${archPrompt}, ${decadeStr}, ${personaStr} persona, ${hairStr}, ${eyeStr}, ${stylePrompt}, highly detailed, masterpiece, beautiful composition, soft studio lighting, 4k.`;
 
-      const response = await ai.models.generateImages({
+      async function generateImagesWithRetry(params: any, retries = 3) {
+        for (let i = 0; i < retries; i++) {
+          try {
+            return await ai.models.generateImages(params);
+          } catch (error: any) {
+            const msg = error?.message || "";
+            if (
+              (error.status === 503 || error.status === 429 || msg.includes("503") || msg.includes("UNAVAILABLE") || msg.includes("high demand") || msg.includes("overloaded") || msg.includes("Resource exhausted")) &&
+              i < retries - 1
+            ) {
+              await new Promise((res) => setTimeout(res, 2000 * (i + 1)));
+            } else {
+              throw error;
+            }
+          }
+        }
+        throw new Error("Generation failed after retries.");
+      }
+
+      const response = await generateImagesWithRetry({
         model: "imagen-3.0-generate-002",
         prompt: fullPrompt,
         config: {

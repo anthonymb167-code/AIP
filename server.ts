@@ -1350,21 +1350,26 @@ Rules (strict):
     }
   });
 
-  // 13. AI Portrait Mode Generator (Imagen 3)
-  app.post("/api/kith/portrait", async (req: Request, res: Response) => {
+  // 13. AI Portrait Mode Generator (Imagen 3 / Gemini) supporting /api/portrait and /api/kith/portrait
+  const handlePortraitGeneration = async (req: Request, res: Response) => {
     try {
-      const { identity = {}, style = "painterly" } = req.body ?? {};
+      const { identity = {}, archetype, decade, persona, hairColor, eyeColor, style = "painterly" } = req.body ?? {};
       const ai = getAiClient();
 
       const archetypeStyleMap: Record<string, string> = {
         goth_academia: "gothic dark academia portrait, moody lighting, violet eyes, dark flowing hair, high-collar black trench coat",
+        GOTH: "gothic dark academia portrait, moody purple lighting, high-collar trench coat",
         classic_scholar: "classic scholar portrait, warm golden lighting, amber eyes, chestnut hair, academic blazer, silver-rimmed glasses",
+        SCHOLAR: "classic scholar portrait, warm golden lighting, academic blazer, silver-rimmed glasses",
         sporty_vanguard: "modern athletic portrait, clean cool lighting, athletic jacket, dynamic confident energy",
+        MODERN: "modern minimalist portrait, cool cyan lighting, navy turtleneck",
         arcane_fantasy: "fantasy archivist portrait, emerald ambient lighting, brass astrolabe pin, draped mantle",
+        CYBER: "cyberpunk portrait, emerald neon lighting, tech jacket, optical visor",
         retro_analog: "retro analog portrait, warm golden-hour lighting, ochre corduroy jacket, vintage vinyl aesthetic",
+        ARTISTIC: "artistic casual portrait, warm rose lighting, indigo shirt, round glasses",
       };
 
-      const decadeMap: Record<number, string> = {
+      const decadeMap: Record<string | number, string> = {
         0: "young child",
         1: "teenager",
         2: "young adult",
@@ -1372,6 +1377,13 @@ Rules (strict):
         4: "adult in their forties",
         5: "adult in their fifties",
         6: "elderly person",
+        "0-10": "young child",
+        "11-20": "teenager",
+        "21-30": "young adult",
+        "31-40": "adult in their thirties",
+        "41-50": "adult in their forties",
+        "51-60": "adult in their fifties",
+        "61+": "elderly person",
       };
 
       const styleMap: Record<string, string> = {
@@ -1381,15 +1393,18 @@ Rules (strict):
         anime: "high quality Japanese anime character design, crisp lines, beautiful shading",
       };
 
-      const archKey = identity?.archetype || "classic_scholar";
+      const archKey = archetype || identity?.archetype || "classic_scholar";
       const archPrompt = archetypeStyleMap[archKey] || archetypeStyleMap.classic_scholar;
-      const decadeNum = Number(identity?.decadeStage ?? 0);
-      const decadeStr = decadeMap[decadeNum] || "young adult";
+      const decadeVal = decade !== undefined ? decade : (identity?.decadeStage ?? 0);
+      const decadeStr = decadeMap[decadeVal] || "young adult";
       const stylePrompt = styleMap[style] || styleMap.painterly;
       const genderStr = identity?.gender || "masculine";
       const nameStr = identity?.primaryName || "Julian";
+      const personaStr = persona || identity?.activeNickname || "Ally";
+      const hairStr = hairColor ? `${hairColor} hair` : "";
+      const eyeStr = eyeColor ? `${eyeColor} eyes` : "";
 
-      const fullPrompt = `Character portrait of ${nameStr}, a ${genderStr} companion. ${archPrompt}, ${decadeStr}, ${stylePrompt}, highly detailed, masterpiece, beautiful composition, soft studio lighting.`;
+      const fullPrompt = `Character portrait of ${nameStr}, a ${genderStr} companion. ${archPrompt}, ${decadeStr}, ${personaStr} persona, ${hairStr}, ${eyeStr}, ${stylePrompt}, highly detailed, masterpiece, beautiful composition, soft studio lighting, 4k.`;
 
       const response = await ai.models.generateImages({
         model: "imagen-3.0-generate-002",
@@ -1408,12 +1423,28 @@ Rules (strict):
 
       const imageUrl = `data:image/jpeg;base64,${base64Bytes}`;
       res.json({ imageUrl });
-    } catch (err) {
+    } catch (err: any) {
       const msg = err instanceof Error ? err.message : "Failed to generate portrait.";
-      console.error("/api/kith/portrait error:", msg);
-      res.status(500).json({ error: msg });
+      console.error("Portrait generation failed:", msg);
+
+      if (
+        err.status === 429 ||
+        msg.includes("overloaded") ||
+        msg.includes("quota") ||
+        msg.includes("Resource exhausted") ||
+        msg.includes("Too many requests")
+      ) {
+        return res.status(429).json({
+          error: "The AI artist is currently swamped with requests. Please wait a few seconds and try again!",
+        });
+      }
+
+      res.status(500).json({ error: msg || "Failed to generate portrait. Please try again." });
     }
-  });
+  };
+
+  app.post("/api/portrait", handlePortraitGeneration);
+  app.post("/api/kith/portrait", handlePortraitGeneration);
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

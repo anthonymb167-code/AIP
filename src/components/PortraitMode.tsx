@@ -47,12 +47,31 @@ export function PortraitMode({ identity, onOpenShareModal, onLogActivity }: Port
     setState("generating");
     setErrorMessage(null);
 
+    const payload = {
+      archetype: identity.archetype,
+      decade: identity.decadeStage,
+      persona: identity.activeNickname || identity.primaryName,
+      hairColor: identity.hairLength > 50 ? "long dark" : "short neat",
+      eyeColor: "vibrant",
+      style,
+      identity,
+    };
+
     try {
-      const res = await fetch("/api/kith/portrait", {
+      let res = await fetch("/api/portrait", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identity, style }),
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok && res.status === 404) {
+        res = await fetch("/api/kith/portrait", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Unable to generate portrait.");

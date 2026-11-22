@@ -535,6 +535,7 @@ export function JournalStoryView({
                                 sampleKey: sampleKind
                                   ? getVoiceSampleKey(sampleKind, userId)
                                   : undefined,
+                                pitch: identity.voicePitch,
                               }
                             );
                           }}

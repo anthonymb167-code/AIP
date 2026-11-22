@@ -14,6 +14,8 @@ export interface CompanionVoiceConfig {
   voiceExternalUrl?: string;
   sampleKey?: string;
   personaKey?: "ally" | "strategist" | "scholar";
+  pitch?: number;
+  rate?: number;
 }
 
 let currentAudio: HTMLAudioElement | null = null;
@@ -214,6 +216,126 @@ export async function playRecordedVoiceSample(params: {
   return false;
 }
 
+/**
+ * Direct browser speech synthesis matching user gender and pitch slider tuning.
+ */
+export function speakText(
+  text: string,
+  gender: string = "masculine",
+  pitch: number = 1.0,
+  rate: number = 1.0,
+  onStart?: () => void,
+  onEnd?: () => void,
+  onSpeechFrame?: (frame: SpeechFrame) => void
+): void {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    onEnd?.();
+    return;
+  }
+
+  // 1. Stop any current speech
+  stopSpeaking();
+  window.speechSynthesis.cancel();
+
+  const cleanText = text.replace(/[“”"]/g, "").trim();
+  if (!cleanText) {
+    onEnd?.();
+    return;
+  }
+
+  // 2. Create the utterance
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+
+  // 3. Get available voices
+  const voices = window.speechSynthesis.getVoices();
+
+  // 4. Filter voices based on gender selection
+  let preferredVoice: SpeechSynthesisVoice | undefined;
+
+  if (gender === "masculine") {
+    // Look for typical male voice names across Mac, Windows, and Chrome
+    preferredVoice = voices.find(
+      (v) =>
+        v.name.includes("Male") ||
+        v.name.includes("Daniel") ||
+        v.name.includes("Alex") ||
+        v.name.includes("David") ||
+        v.name.includes("Google UK English Male") ||
+        (v.name.toLowerCase().includes("male") && !v.name.toLowerCase().includes("female"))
+    );
+  } else if (gender === "feminine") {
+    // Look for typical female voice names
+    preferredVoice = voices.find(
+      (v) =>
+        v.name.includes("Female") ||
+        v.name.includes("Samantha") ||
+        v.name.includes("Victoria") ||
+        v.name.includes("Zira") ||
+        v.name.includes("Google UK English Female") ||
+        (v.name.toLowerCase().includes("female") && !v.name.toLowerCase().includes("male"))
+    );
+  } else {
+    // Non-binary / default voice
+    preferredVoice = voices.find(
+      (v) =>
+        v.name.includes("Alex") ||
+        v.name.includes("Google US English") ||
+        v.name.includes("Natural")
+    );
+  }
+
+  // 5. Apply the voice if we found one
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  // 6. Apply the pitch tuning from the UI slider
+  // If the user tuned it lower (e.g., 0.8), it will drop the pitch.
+  utterance.pitch = Math.max(0.5, Math.min(1.8, pitch));
+  utterance.rate = Math.max(0.7, Math.min(1.4, rate));
+
+  musicEngine.setDucked(true);
+  onStart?.();
+
+  const timeline = textToVisemeTimeline(cleanText);
+  const estTotalMs = Math.max(1200, (cleanText.length * 62) / (utterance.rate || 1));
+  const startMs = performance.now();
+  let boundaryBoost = 0;
+
+  utterance.onboundary = () => {
+    boundaryBoost = 0.35;
+  };
+
+  const pumpFallbackFrames = () => {
+    const elapsedMs = performance.now() - startMs;
+    const progress = Math.min(0.999, elapsedMs / estTotalMs);
+    const idx = Math.floor(progress * timeline.length);
+    const viseme = timeline[idx] || "aa";
+    const syllablePulse = Math.abs(Math.sin(elapsedMs * 0.015));
+    boundaryBoost *= 0.88;
+    const energy =
+      viseme === "closed"
+        ? 0.06
+        : Math.min(1, 0.25 + syllablePulse * 0.55 + boundaryBoost);
+    onSpeechFrame?.({ energy, viseme });
+    lipSyncRafId = requestAnimationFrame(pumpFallbackFrames);
+  };
+
+  lipSyncRafId = requestAnimationFrame(pumpFallbackFrames);
+
+  utterance.onend = () => {
+    stopLipSyncDriver(onSpeechFrame);
+    onEnd?.();
+  };
+  utterance.onerror = () => {
+    stopLipSyncDriver(onSpeechFrame);
+    onEnd?.();
+  };
+
+  // 7. Speak
+  window.speechSynthesis.speak(utterance);
+}
+
 export async function speakCompanionLine(
   text: string,
   voiceTone: VoiceTone,
@@ -236,46 +358,20 @@ export async function speakCompanionLine(
   const cleanText = text.replace(/[“”"]/g, "").trim();
   if (!cleanText) return;
 
-  const timeline = textToVisemeTimeline(cleanText);
+  const defaultPitchForGender =
+    gender === "feminine" ? 1.15 : gender === "nonbinary" ? 1.0 : 0.9;
+  const effectivePitch =
+    voiceConfig?.pitch !== undefined ? voiceConfig.pitch : defaultPitchForGender;
+  const effectiveRate =
+    voiceConfig?.rate !== undefined
+      ? voiceConfig.rate
+      : voiceTone === "excited"
+      ? 1.08
+      : voiceTone === "calm"
+      ? 0.92
+      : 1.0;
 
-  if (!offlineMode && typeof navigator !== "undefined" && navigator.onLine) {
-    try {
-      onStart?.();
-      const res = await fetch("/api/kith/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: cleanText,
-          voiceTone,
-          gender,
-          voiceSource: voiceConfig?.voiceSource || "suggested",
-          voicePresetId: voiceConfig?.voicePresetId,
-          voiceStylePrompt: voiceConfig?.voiceStylePrompt,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.audioBase64) {
-          const audio = new Audio(
-            `data:${data.mimeType || "audio/wav"};base64,${data.audioBase64}`
-          );
-          await attachAudioAndPlay(
-            audio,
-            timeline,
-            cleanText.length,
-            undefined,
-            onEnd,
-            onSpeechFrame
-          );
-          return;
-        }
-      }
-    } catch {
-      // Fall back cleanly to Web Speech API or recorded sample below
-    }
-  }
-
-  // If offline and user uploaded/recorded a direct sample, play it as offline voice fallback
+  // If user configured a recorded sample, play that with live lip-sync
   if (
     voiceConfig &&
     (voiceConfig.voiceSource === "recorded_media" ||
@@ -293,97 +389,58 @@ export async function speakCompanionLine(
     if (played) return;
   }
 
-  // Offline / fallback Web Speech API synthesis with persona-matched voices & viseme cadence
-  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    musicEngine.setDucked(true);
-    onStart?.();
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-
-    const personaKey = voiceConfig?.personaKey || "ally";
-    const personaProfile =
-      personaKey === "strategist"
-        ? {
-            preferredVoices: ["Daniel", "Google UK English Male", "Alex", "Microsoft David"],
-            rateOffset: 0.06,
-            pitchOffset: -0.05,
-          }
-        : personaKey === "scholar"
-        ? {
-            preferredVoices: ["Google US English", "Microsoft Mark", "Fred", "Daniel"],
-            rateOffset: -0.08,
-            pitchOffset: -0.01,
-          }
-        : {
-            preferredVoices: ["Samantha", "Google UK English Female", "Karen", "Moira"],
-            rateOffset: -0.02,
-            pitchOffset: 0.04,
-          };
-
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      const matched = personaProfile.preferredVoices
-        .map((pref) =>
-          voices.find((v) => v.name.toLowerCase().includes(pref.toLowerCase()))
-        )
-        .find(Boolean);
-      if (matched) {
-        utterance.voice = matched;
+  // If user explicitly selected Infinite Voice Cast, try server TTS
+  if (
+    voiceConfig?.voiceSource === "preset_cast" &&
+    !offlineMode &&
+    typeof navigator !== "undefined" &&
+    navigator.onLine
+  ) {
+    try {
+      onStart?.();
+      const res = await fetch("/api/kith/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: cleanText,
+          voiceTone,
+          gender,
+          voiceSource: "preset_cast",
+          voicePresetId: voiceConfig?.voicePresetId,
+          voiceStylePrompt: voiceConfig?.voiceStylePrompt,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.audioBase64) {
+          const timeline = textToVisemeTimeline(cleanText);
+          const audio = new Audio(
+            `data:${data.mimeType || "audio/wav"};base64,${data.audioBase64}`
+          );
+          await attachAudioAndPlay(
+            audio,
+            timeline,
+            cleanText.length,
+            undefined,
+            onEnd,
+            onSpeechFrame
+          );
+          return;
+        }
       }
+    } catch {
+      // Fall through to browser speech synthesis below
     }
-
-    const baseRate =
-      voiceTone === "excited" ? 1.08 : voiceTone === "calm" ? 0.92 : 1.0;
-    utterance.rate = Math.max(0.75, Math.min(1.25, baseRate + personaProfile.rateOffset));
-    const basePitch = gender === "feminine" ? 1.14 : gender === "nonbinary" ? 1.02 : 0.92;
-    utterance.pitch = Math.max(
-      0.7,
-      Math.min(
-        1.4,
-        basePitch +
-          personaProfile.pitchOffset +
-          (voiceTone === "excited" ? 0.05 : voiceTone === "calm" ? -0.03 : 0)
-      )
-    );
-
-    const estTotalMs = Math.max(
-      1400,
-      (cleanText.length * 64) / (utterance.rate || 1)
-    );
-    const startMs = performance.now();
-    let boundaryBoost = 0;
-
-    utterance.onboundary = () => {
-      boundaryBoost = 0.35;
-    };
-
-    const pumpFallbackFrames = () => {
-      const elapsedMs = performance.now() - startMs;
-      const progress = Math.min(0.999, elapsedMs / estTotalMs);
-      const idx = Math.floor(progress * timeline.length);
-      const viseme = timeline[idx] || "aa";
-      const syllablePulse = Math.abs(Math.sin(elapsedMs * 0.015));
-      boundaryBoost *= 0.88;
-      const energy =
-        viseme === "closed"
-          ? 0.06
-          : Math.min(1, 0.25 + syllablePulse * 0.55 + boundaryBoost);
-      onSpeechFrame?.({ energy, viseme });
-      lipSyncRafId = requestAnimationFrame(pumpFallbackFrames);
-    };
-
-    lipSyncRafId = requestAnimationFrame(pumpFallbackFrames);
-
-    utterance.onend = () => {
-      stopLipSyncDriver(onSpeechFrame);
-      onEnd?.();
-    };
-    utterance.onerror = () => {
-      stopLipSyncDriver(onSpeechFrame);
-      onEnd?.();
-    };
-    window.speechSynthesis.speak(utterance);
-  } else {
-    stopLipSyncDriver(onSpeechFrame);
-    onEnd?.();
   }
+
+  // Default "suggested" or fallback mode: Direct browser speech synthesis with gender + pitch slider
+  speakText(
+    cleanText,
+    gender,
+    effectivePitch,
+    effectiveRate,
+    onStart,
+    onEnd,
+    onSpeechFrame
+  );
 }

@@ -656,6 +656,7 @@ export interface CompanionIdentity {
   warmthHumor: number; // 0..100
   scholarlyDepth: number; // 0..100
   voiceTone: VoiceTone;
+  voicePitch?: number; // 0.6..1.4 slider value (e.g., 0.8 for deep/grounded, 1.2 for higher pitch)
   cameraFraming?: AvatarFraming;
   backgroundPreset?: BackgroundPresetId;
   backgroundPrompt?: string;
@@ -1776,6 +1777,7 @@ export const DEFAULT_COMPANION_IDENTITY: CompanionIdentity = {
   warmthHumor: 84,
   scholarlyDepth: 95,
   voiceTone: "warm",
+  voicePitch: 0.9,
   cameraFraming: "half_body",
   backgroundPreset: "studio_plinth",
   backgroundPrompt: "",

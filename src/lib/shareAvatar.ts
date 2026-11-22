@@ -43,6 +43,7 @@ interface CompactSharedBuild {
   wh?: number;
   sd?: number;
   vt?: VoiceTone;
+  vp?: number;
   cf?: AvatarFraming;
   bp?: BackgroundPresetId;
   bq?: string;
@@ -100,6 +101,7 @@ export function encodeShareIdentity(identity: CompanionIdentity): string {
     wh: clampInt(identity.warmthHumor, 0, 100, 84),
     sd: clampInt(identity.scholarlyDepth, 0, 100, 95),
     vt: identity.voiceTone,
+    vp: typeof identity.voicePitch === "number" ? Number(identity.voicePitch.toFixed(2)) : undefined,
     cf: identity.cameraFraming || "half_body",
     bp: identity.backgroundPreset || "studio_plinth",
     bq: (identity.backgroundPrompt || "").slice(0, 160),
@@ -251,6 +253,10 @@ export function decodeShareHash(
       warmthHumor: clampInt(raw.wh, 0, 100, DEFAULT_COMPANION_IDENTITY.warmthHumor),
       scholarlyDepth: clampInt(raw.sd, 0, 100, DEFAULT_COMPANION_IDENTITY.scholarlyDepth),
       voiceTone: validTone,
+      voicePitch:
+        typeof raw.vp === "number" && !isNaN(raw.vp)
+          ? Math.max(0.6, Math.min(1.4, Number(raw.vp)))
+          : DEFAULT_COMPANION_IDENTITY.voicePitch,
       cameraFraming: validFraming,
       backgroundPreset: validBgPreset,
       backgroundPrompt:

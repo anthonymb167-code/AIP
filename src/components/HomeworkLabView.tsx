@@ -363,6 +363,7 @@ export function HomeworkLabView({
                         sampleKey: sampleKind
                           ? getVoiceSampleKey(sampleKind, userId)
                           : undefined,
+                        pitch: identity.voicePitch,
                       }
                     );
                   }}

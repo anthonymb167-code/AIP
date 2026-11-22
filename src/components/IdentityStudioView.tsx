@@ -191,10 +191,21 @@ export function IdentityStudioView({
         ? nextSuggested
         : identity.primaryName;
 
+    // Automatically align pitch default when gender changes if not manually set to a custom value
+    let nextPitch = identity.voicePitch;
+    if (nextGender === "masculine" && (nextPitch === undefined || nextPitch === 1.15)) {
+      nextPitch = 0.9;
+    } else if (nextGender === "feminine" && (nextPitch === undefined || nextPitch === 0.9)) {
+      nextPitch = 1.15;
+    } else if (nextGender === "nonbinary" && (nextPitch === undefined || nextPitch === 0.9 || nextPitch === 1.15)) {
+      nextPitch = 1.0;
+    }
+
     onUpdateIdentity({
       ...identity,
       gender: nextGender,
       primaryName: nextPrimaryName,
+      voicePitch: nextPitch,
     });
     setGesture("warm_nod");
   }
@@ -389,6 +400,7 @@ export function IdentityStudioView({
         voiceStylePrompt: identity.voiceStylePrompt,
         voiceExternalUrl: identity.voiceExternalUrl,
         sampleKey: sampleKind ? getVoiceSampleKey(sampleKind, userId) : undefined,
+        pitch: identity.voicePitch,
       }
     );
   }
@@ -973,6 +985,65 @@ export function IdentityStudioView({
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Voice Pitch / Tuning Slider */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-surface-alt border border-edge">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-ink">
+                    Voice Pitch / Tuning
+                  </span>
+                  <span className="font-mono-tabular text-[11px] text-accent-ink font-semibold">
+                    {((identity.voicePitch ?? (gender === "feminine" ? 1.15 : gender === "nonbinary" ? 1.0 : 0.9))).toFixed(2)}x ·{" "}
+                    {(identity.voicePitch ?? (gender === "feminine" ? 1.15 : gender === "nonbinary" ? 1.0 : 0.9)) <= 0.85
+                      ? "Deep / Grounded"
+                      : (identity.voicePitch ?? (gender === "feminine" ? 1.15 : gender === "nonbinary" ? 1.0 : 0.9)) >= 1.15
+                      ? "Bright / High"
+                      : "Balanced"}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.6"
+                  max="1.4"
+                  step="0.05"
+                  aria-label="Voice pitch tuning slider"
+                  value={identity.voicePitch ?? (gender === "feminine" ? 1.15 : gender === "nonbinary" ? 1.0 : 0.9)}
+                  onChange={(e) =>
+                    onUpdateIdentity({
+                      ...identity,
+                      voicePitch: Number(e.target.value),
+                    })
+                  }
+                  className="w-full accent-accent cursor-pointer"
+                />
+                <div className="flex items-center justify-between text-[11px] text-ink-muted">
+                  <span>0.6x (Deep)</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateIdentity({ ...identity, voicePitch: 0.8 })}
+                      className="px-1.5 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                    >
+                      Deep (0.8x)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateIdentity({ ...identity, voicePitch: 1.0 })}
+                      className="px-1.5 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                    >
+                      Natural (1.0x)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateIdentity({ ...identity, voicePitch: 1.2 })}
+                      className="px-1.5 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                    >
+                      Bright (1.2x)
+                    </button>
+                  </div>
+                  <span>1.4x (High)</span>
+                </div>
               </div>
             </div>
 

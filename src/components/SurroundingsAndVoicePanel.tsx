@@ -33,7 +33,7 @@ import {
   saveVoiceSample,
 } from "../lib/audioStore";
 import { musicEngine } from "../lib/musicEngine";
-import { playRecordedVoiceSample, stopSpeaking, type SpeechFrame } from "../lib/voice";
+import { playRecordedVoiceSample, speakCompanionLine, stopSpeaking, type SpeechFrame } from "../lib/voice";
 
 interface SurroundingsAndVoicePanelProps {
   identity: CompanionIdentity;
@@ -68,6 +68,7 @@ export function SurroundingsAndVoicePanel({
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceMessage, setVoiceMessage] = useState<string | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [testingVoice, setTestingVoice] = useState(false);
 
   // Background music generator state
   const [musicPrompt, setMusicPrompt] = useState(identity.musicPrompt || "");
@@ -496,6 +497,40 @@ export function SurroundingsAndVoicePanel({
     }
   }
 
+  async function handleTestVoice() {
+    if (testingVoice || identity.voiceSource === "silent") return;
+    setTestingVoice(true);
+    const testLine =
+      identity.gender === "masculine"
+        ? `Hey, I'm ${identity.primaryName}. Your voice pitch and tuning are active.`
+        : identity.gender === "feminine"
+        ? `Hi there! I'm ${identity.primaryName}. Your voice tuning sounds great.`
+        : `Greetings, I'm ${identity.primaryName}. Listening and ready when you are.`;
+    await speakCompanionLine(
+      testLine,
+      identity.voiceTone,
+      offlineMode,
+      () => {
+        setTestingVoice(true);
+        onSpeechPreviewStart();
+      },
+      () => {
+        setTestingVoice(false);
+        onSpeechPreviewEnd();
+      },
+      (frame) => onSpeechPreviewFrame(frame),
+      identity.gender,
+      {
+        voiceSource: identity.voiceSource,
+        voicePresetId: identity.voicePresetId,
+        voiceStylePrompt: identity.voiceStylePrompt,
+        voiceExternalUrl: identity.voiceExternalUrl,
+        sampleKey: activeSampleKind ? getVoiceSampleKey(activeSampleKind, userId) : undefined,
+        pitch: identity.voicePitch,
+      }
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* 06. Avatar Surroundings & Background Generator */}
@@ -870,6 +905,80 @@ export function SurroundingsAndVoicePanel({
                 Saved clip: <span className="font-medium text-ink">{identity.voiceSampleLabel}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Dynamic Voice Pitch & Tuning Slider */}
+        {voiceSource !== "silent" && (
+          <div className="p-3.5 rounded-xl bg-surface-alt border border-edge space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-semibold text-ink">
+                  Voice Pitch / Tuning ({identity.gender})
+                </div>
+                <div className="text-[11px] text-ink-muted">
+                  Dynamically adjust frequency—deeper (0.8x) for a grounded tone, higher (1.2x) for bright tone.
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono-tabular text-xs font-semibold text-accent-ink">
+                  {(identity.voicePitch ?? (identity.gender === "feminine" ? 1.15 : identity.gender === "nonbinary" ? 1.0 : 0.9)).toFixed(2)}x
+                </span>
+                <button
+                  type="button"
+                  disabled={testingVoice}
+                  onClick={handleTestVoice}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-accent-fg bg-accent rounded-lg hover:bg-accent-hover disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  {testingVoice ? "Testing..." : "Test Voice"}
+                </button>
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min="0.6"
+              max="1.4"
+              step="0.05"
+              aria-label="Voice pitch tuning"
+              value={identity.voicePitch ?? (identity.gender === "feminine" ? 1.15 : identity.gender === "nonbinary" ? 1.0 : 0.9)}
+              onChange={(e) =>
+                onUpdateIdentity({
+                  ...identity,
+                  voicePitch: Number(e.target.value),
+                })
+              }
+              className="w-full accent-accent cursor-pointer"
+            />
+
+            <div className="flex items-center justify-between text-[11px] text-ink-muted">
+              <span>0.6x (Deep)</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onUpdateIdentity({ ...identity, voicePitch: 0.8 })}
+                  className="px-2 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                >
+                  Deep (0.8x)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateIdentity({ ...identity, voicePitch: 1.0 })}
+                  className="px-2 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                >
+                  Natural (1.0x)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateIdentity({ ...identity, voicePitch: 1.2 })}
+                  className="px-2 py-0.5 rounded bg-surface border border-edge hover:border-accent text-[10px] text-ink cursor-pointer"
+                >
+                  Bright (1.2x)
+                </button>
+              </div>
+              <span>1.4x (High)</span>
+            </div>
           </div>
         )}
 

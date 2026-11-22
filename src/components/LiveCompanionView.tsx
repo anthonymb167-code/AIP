@@ -406,6 +406,7 @@ export function LiveCompanionView({
         voiceExternalUrl: identity.voiceExternalUrl,
         sampleKey: sampleKind ? getVoiceSampleKey(sampleKind, userId) : undefined,
         personaKey: activePersona.key,
+        pitch: identity.voicePitch,
       }
     );
   }

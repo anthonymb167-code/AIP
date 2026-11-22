@@ -146,6 +146,16 @@ export default function App() {
     }
   }, [theme]);
 
+  // Warm up browser speech synthesis voices immediately on page load
+  useEffect(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
+
   const [initialShare] = useState(() =>
     typeof window !== "undefined" ? decodeShareHash(window.location.hash) : null
   );
